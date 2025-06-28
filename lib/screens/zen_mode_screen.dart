@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_app_bar.dart';
 
 class ZenModeScreen extends StatefulWidget {
   const ZenModeScreen({super.key});
@@ -21,8 +22,8 @@ class _ZenModeScreenState extends State<ZenModeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Zen Mode'),
+      appBar: const CustomAppBar(
+        title: 'Focus AI',
       ),
       body: ListView(
         children: [

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'models/task.dart';
 import 'services/task_service.dart';
+import 'widgets/custom_app_bar.dart';
 
 class TaskScreen extends StatefulWidget {
   const TaskScreen({super.key});
@@ -146,8 +147,8 @@ class _TaskScreenState extends State<TaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Tasks'),
+      appBar: CustomAppBar(
+        title: 'Focus AI',
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {

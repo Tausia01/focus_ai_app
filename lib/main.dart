@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'auth_screen.dart'; 
 import 'auth_service.dart'; 
 import 'dart:io';
+import 'widgets/custom_app_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,10 +101,8 @@ class ErrorApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Initialization Error'),
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
+        appBar: const CustomAppBar(
+          title: 'Focus AI',
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -217,10 +216,8 @@ class _OfflineAppState extends State<OfflineApp> {
         useMaterial3: true,
       ),
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Focus AI - Offline Mode'),
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
+        appBar: const CustomAppBar(
+          title: 'Focus AI',
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

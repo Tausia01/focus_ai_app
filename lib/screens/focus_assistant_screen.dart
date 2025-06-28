@@ -5,6 +5,7 @@ import '../services/chat_service.dart';
 import '../auth_service.dart';
 import '../auth_screen.dart';
 import '../models/chat_message.dart';
+import '../widgets/custom_app_bar.dart';
 
 class FocusAssistantScreen extends StatefulWidget {
   const FocusAssistantScreen({super.key});
@@ -76,8 +77,8 @@ class _FocusAssistantScreenState extends State<FocusAssistantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Focus Assistant'),
+      appBar: CustomAppBar(
+        title: 'Focus AI',
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

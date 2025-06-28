@@ -5,6 +5,7 @@ import '../auth_service.dart';
 import '../auth_screen.dart';
 import '../services/task_service.dart';
 import '../models/task.dart';
+import '../widgets/custom_app_bar.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -38,8 +39,8 @@ class HomeScreen extends StatelessWidget {
           );
         }
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Home'),
+          appBar: CustomAppBar(
+            title: 'Focus AI',
             actions: [
               IconButton(
                 icon: const Icon(Icons.logout),

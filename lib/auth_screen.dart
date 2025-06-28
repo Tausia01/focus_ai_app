@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/main_screen.dart';
+import 'widgets/custom_app_bar.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -71,7 +72,9 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Focus AI Auth')),
+      appBar: const CustomAppBar(
+        title: 'Focus AI',
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

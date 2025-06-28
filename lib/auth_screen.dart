@@ -14,10 +14,20 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLogin = true;
+  bool _isLoading = false;
   String _errorMessage = '';
 
   Future<void> _submit() async {
-    setState(() => _errorMessage = '');
+    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Please fill in all fields');
+      return;
+    }
+
+    setState(() {
+      _errorMessage = '';
+      _isLoading = true;
+    });
+
     try {
       UserCredential cred;
       if (_isLogin) {
@@ -39,10 +49,15 @@ class _AuthScreenState extends State<AuthScreen> {
         MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     } on FirebaseAuthException catch (e) {
-      setState(() => _errorMessage = e.message ?? 'Auth error');
+      setState(() => _errorMessage = e.message ?? 'Authentication error');
+      print('Firebase Auth Error: ${e.code} - ${e.message}');
     } catch (e) {
-      setState(() => _errorMessage = 'Unexpected error');
+      setState(() => _errorMessage = 'Unexpected error occurred');
       print('Error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -76,11 +91,17 @@ class _AuthScreenState extends State<AuthScreen> {
               Text(_errorMessage, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _submit,
-              child: Text(_isLogin ? 'Login' : 'Sign Up'),
+              onPressed: _isLoading ? null : _submit,
+              child: _isLoading 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(_isLogin ? 'Login' : 'Sign Up'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: _isLoading ? null : () {
                 setState(() {
                   _isLogin = !_isLogin;
                   _errorMessage = '';

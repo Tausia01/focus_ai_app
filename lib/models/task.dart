@@ -29,7 +29,7 @@ class Task {
     return {
       'name': name,
       'priority': priority.index,
-      'deadline': deadline,
+      'deadline': Timestamp.fromDate(deadline),
       'completed': completed,
     };
   }

@@ -94,6 +94,21 @@ class HomeScreen extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const CircularProgressIndicator();
                     }
+                    
+                    if (snapshot.hasError) {
+                      return Column(
+                        children: [
+                          const Icon(Icons.error, color: Colors.red, size: 48),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Error loading tasks: ${snapshot.error}',
+                            style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      );
+                    }
+                    
                     final tasks = snapshot.data ?? [];
                     final completedCount = tasks.where((t) => t.completed).length;
                     final totalCount = tasks.length;

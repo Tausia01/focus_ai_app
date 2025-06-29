@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'models/task.dart';
 import 'services/task_service.dart';
+import 'auth_service.dart';
 import 'widgets/custom_app_bar.dart';
 
 class TaskScreen extends StatefulWidget {
@@ -167,6 +168,15 @@ class _TaskScreenState extends State<TaskScreen> {
                 child: Text('Sort by Deadline'),
               ),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              await AuthService().signOut();
+              // Navigation is now handled automatically by AuthWrapper
+              // No need to manually navigate here
+            },
           ),
         ],
       ),

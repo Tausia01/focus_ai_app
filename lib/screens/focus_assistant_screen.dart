@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/task_service.dart';
-import '../models/task.dart';
 import '../services/chat_service.dart';
 import '../auth_service.dart';
-import '../auth_screen.dart';
 import '../models/chat_message.dart';
 import '../widgets/custom_app_bar.dart';
 
@@ -85,11 +83,8 @@ class _FocusAssistantScreenState extends State<FocusAssistantScreen> {
             tooltip: 'Logout',
             onPressed: () async {
               await AuthService().signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const AuthScreen()),
-                );
-              }
+              // Navigation is now handled automatically by AuthWrapper
+              // No need to manually navigate here
             },
           ),
         ],

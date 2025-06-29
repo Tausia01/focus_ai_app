@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'screens/main_screen.dart';
 import 'widgets/custom_app_bar.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -45,10 +44,8 @@ class _AuthScreenState extends State<AuthScreen> {
         print('Signed up: ${cred.user?.email}');
       }
 
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainScreen()),
-      );
+      // Navigation is now handled automatically by AuthWrapper
+      // No need to manually navigate here
     } on FirebaseAuthException catch (e) {
       setState(() => _errorMessage = e.message ?? 'Authentication error');
       print('Firebase Auth Error: ${e.code} - ${e.message}');

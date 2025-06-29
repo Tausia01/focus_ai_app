@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'auth_screen.dart'; 
-import 'auth_service.dart'; 
+import 'screens/main_screen.dart';
 import 'dart:io';
 import 'widgets/custom_app_bar.dart';
 
@@ -53,16 +54,24 @@ void main() async {
     );
     print('✓ Firebase initialized successfully');
     
-    // Enable offline persistence for web platform
-    print('Checking platform for offline persistence...');
+    // Configure Firebase Auth persistence for web
+    print('Checking platform for auth persistence...');
     if (kIsWeb) {
+      print('Configuring Firebase Auth persistence for web...');
+      // For web, Firebase Auth automatically handles persistence
+      // No need to explicitly set persistence
+      print('✓ Firebase Auth persistence automatically configured for web');
+      
+      // Add a small delay to ensure Firebase is fully initialized
+      await Future.delayed(const Duration(milliseconds: 100));
+      
       print('Enabling Firestore offline persistence for web...');
       await FirebaseFirestore.instance.enablePersistence();
       print('✓ Firestore offline persistence enabled for web');
     } else {
-      print('Skipping enablePersistence for mobile platform (not supported)');
-      // For mobile, offline persistence is enabled by default
-      print('✓ Mobile offline persistence is enabled by default');
+      print('Skipping persistence configuration for mobile platform (handled by default)');
+      // For mobile, persistence is enabled by default
+      print('✓ Mobile persistence is enabled by default');
     }
     
     // Test Firestore connection
@@ -331,8 +340,36 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const AuthScreen(),
+      home: const AuthWrapper(),
+    );
+  }
+}
 
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Show loading indicator while checking auth state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        // If user is logged in, show main screen
+        if (snapshot.hasData && snapshot.data != null) {
+          return const MainScreen();
+        }
+        
+        // If user is not logged in, show auth screen
+        return const AuthScreen();
+      },
     );
   }
 }

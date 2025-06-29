@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../auth_service.dart';
 import '../widgets/custom_app_bar.dart';
 
 class ZenModeScreen extends StatefulWidget {
@@ -22,8 +23,19 @@ class _ZenModeScreenState extends State<ZenModeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'Focus AI',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              await AuthService().signOut();
+              // Navigation is now handled automatically by AuthWrapper
+              // No need to manually navigate here
+            },
+          ),
+        ],
       ),
       body: ListView(
         children: [

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../auth_service.dart';
-import '../auth_screen.dart';
 
 class ZenModeScreen extends StatefulWidget {
   const ZenModeScreen({super.key});

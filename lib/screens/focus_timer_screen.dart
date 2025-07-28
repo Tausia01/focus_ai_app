@@ -1,0 +1,210 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../models/focus_session.dart';
+import '../services/app_detection_service.dart';
+import '../widgets/custom_app_bar.dart';
+import '../services/notification_service.dart';
+
+class FocusTimerScreen extends StatefulWidget {
+  final FocusSession session;
+
+  const FocusTimerScreen({
+    super.key,
+    required this.session,
+  });
+
+  @override
+  State<FocusTimerScreen> createState() => _FocusTimerScreenState();
+}
+
+class _FocusTimerScreenState extends State<FocusTimerScreen> {
+  final AppDetectionService _appDetectionService = AppDetectionService();
+  Timer? _timer;
+  int _distractionCount = 0;
+
+  // Map for user-friendly app names
+  final Map<String, String> _appDisplayNames = {
+    'com.facebook.katana': 'Facebook',
+    'com.instagram.android': 'Instagram',
+    'com.zhiliaoapp.musically': 'TikTok',
+    'com.twitter.android': 'Twitter',
+    'com.google.android.youtube': 'YouTube',
+    'com.snapchat.android': 'Snapchat',
+    'com.reddit.frontpage': 'Reddit',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _startSession();
+    // Listen for overlay close event
+    _appDetectionService.overlayClosedStream.listen((_) {
+      _endSession();
+    });
+  }
+
+  Future<void> _startSession() async {
+    // Initialize app detection
+    await _appDetectionService.initialize();
+    // Initialize notifications
+    await NotificationService().initialize();
+    // Show session start notification
+    await NotificationService().showSessionStartNotification(widget.session.duration, context);
+    // Set blocked apps and start monitoring
+    _appDetectionService.setBlockedApps(widget.session.blockedApps);
+    await _appDetectionService.startMonitoring();
+    // Listen for app detection
+    _appDetectionService.appDetectionStream.listen((appPackage) {
+      _onBlockedAppDetected(appPackage);
+    });
+    // Start timer
+    _startTimer();
+  }
+
+  void _onBlockedAppDetected(String appPackage) {
+    setState(() {
+      _distractionCount++;
+    });
+    // Use friendly name if available
+    final appName = _appDisplayNames[appPackage] ?? appPackage;
+    NotificationService().showDistractionNotification(appName, context);
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (widget.session.isExpired) {
+        _endSession();
+        NotificationService().showSessionCompleteNotification(context);
+      } else {
+        setState(() {
+          // Update UI
+        });
+      }
+    });
+  }
+
+  void _endSession() async {
+    await _appDetectionService.stopMonitoring();
+    _timer?.cancel();
+    Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _appDetectionService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remainingTime = widget.session.remainingTime;
+    final totalSeconds = widget.session.duration.inSeconds;
+    final elapsedSeconds = totalSeconds - remainingTime.inSeconds;
+    final progress = elapsedSeconds / totalSeconds;
+
+    return Scaffold(
+      appBar: CustomAppBar(
+        title: 'Focus Session',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.stop),
+            tooltip: 'Stop Session',
+            onPressed: _endSession,
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 8,
+                      backgroundColor: Colors.grey.shade300,
+                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    '${remainingTime.inMinutes}:${(remainingTime.inSeconds % 60).toString().padLeft(2, '0')}',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(
+                    'remaining',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 40), // More space below timer
+                ],
+              ),
+            ),
+            // Session Info Card
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Monitoring: ${widget.session.blockedApps.map((pkg) => _appDisplayNames[pkg] ?? pkg).join(', ')}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Distractions:'),
+                        Text(
+                          '$_distractionCount times',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Stop Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _endSession,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                child: const Text(
+                  'Stop Session',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

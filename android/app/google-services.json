@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "870522724218",
+    "project_id": "focusai-d212a",
+    "storage_bucket": "focusai-d212a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870522724218:android:9d5b92638ae3929cdac0c3",
+        "android_client_info": {
+          "package_name": "com.example.focus_ai_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBB6fYOuh1dABjG4ob49WvQeOdY_hi3gQU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870522724218:android:19d19fb37e41160cdac0c3",
+        "android_client_info": {
+          "package_name": "com.seniorproject.focus_ai_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBB6fYOuh1dABjG4ob49WvQeOdY_hi3gQU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

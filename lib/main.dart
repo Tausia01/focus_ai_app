@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'auth_screen.dart'; 
 import 'screens/main_screen.dart';
+import 'services/cache_service.dart';
 import 'dart:io';
 import 'widgets/custom_app_bar.dart';
 
@@ -82,6 +83,11 @@ void main() async {
     } catch (e) {
       print('✗ Firestore connection: FAILED - $e');
     }
+    
+    // Initialize cache service for optimistic updates
+    print('Initializing cache service...');
+    await CacheService().initialize();
+    print('✓ Cache service initialized');
     
     runApp(const MyApp());
   } catch (e, stackTrace) {

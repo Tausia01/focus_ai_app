@@ -3,6 +3,7 @@ import '../task_screen.dart';
 import 'home_screen.dart';
 import 'focus_assistant_screen.dart';
 import 'zen_mode_screen.dart';
+import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,6 +17,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const HomeScreen(),
+    ProfileScreen(),
     const TaskScreen(),
     const FocusAssistantScreen(),
     const ZenModeScreen(),
@@ -43,6 +45,10 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.task),
             label: 'Tasks',
           ),
@@ -58,4 +64,4 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-} 
+}

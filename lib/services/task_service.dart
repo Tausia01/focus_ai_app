@@ -1,53 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/task.dart';
+import 'cache_service.dart';
 
 class TaskService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final CacheService _cacheService = CacheService();
 
-  // Get user's tasks stream
+  // Get user's tasks stream (now from cache for instant updates)
   Stream<List<Task>> getTasks() {
-    final user = _auth.currentUser;
-    if (user == null) return Stream.value([]);
-
-    return _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .orderBy('priority', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Task.fromMap(data, doc.id);
-      }).toList();
-    });
+    return _cacheService.getTasksStream();
   }
 
-  // Add a new task
+  // Add a new task (optimistic update)
   Future<void> addTask(Task task) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .add(task.toMap());
+    await _cacheService.addTaskOptimistic(task);
   }
 
-  // Delete a task
+  // Delete a task (optimistic update)
   Future<void> deleteTask(String taskId) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .delete();
+    await _cacheService.deleteTaskOptimistic(taskId);
   }
 
   // Update task sorting
@@ -70,15 +43,9 @@ class TaskService {
     await batch.commit();
   }
 
+  // Update task completed status (optimistic update)
   Future<void> updateTaskCompleted(String taskId, bool completed) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .update({'completed': completed});
+    await _cacheService.updateTaskCompletedOptimistic(taskId, completed);
   }
 
   Future<void> migrateTasksAddCompleted() async {

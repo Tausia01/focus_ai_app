@@ -4,14 +4,12 @@ import '../models/focus_session.dart';
 import '../services/app_detection_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../services/notification_service.dart';
+import '../services/gamification_service.dart';
 
 class FocusTimerScreen extends StatefulWidget {
   final FocusSession session;
 
-  const FocusTimerScreen({
-    super.key,
-    required this.session,
-  });
+  const FocusTimerScreen({super.key, required this.session});
 
   @override
   State<FocusTimerScreen> createState() => _FocusTimerScreenState();
@@ -19,8 +17,10 @@ class FocusTimerScreen extends StatefulWidget {
 
 class _FocusTimerScreenState extends State<FocusTimerScreen> {
   final AppDetectionService _appDetectionService = AppDetectionService();
+  final GamificationService _gamification = GamificationService();
   Timer? _timer;
   int _distractionCount = 0;
+  bool _pointsAwarded = false;
 
   // Map for user-friendly app names
   final Map<String, String> _appDisplayNames = {
@@ -49,7 +49,10 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     // Initialize notifications
     await NotificationService().initialize();
     // Show session start notification
-    await NotificationService().showSessionStartNotification(widget.session.duration, context);
+    await NotificationService().showSessionStartNotification(
+      widget.session.duration,
+      context,
+    );
     // Set blocked apps and start monitoring
     _appDetectionService.setBlockedApps(widget.session.blockedApps);
     await _appDetectionService.startMonitoring();
@@ -86,7 +89,34 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   void _endSession() async {
     await _appDetectionService.stopMonitoring();
     _timer?.cancel();
-    Navigator.pop(context);
+
+    final userId = _gamification.currentUserId;
+    if (userId != null) {
+      final currentPoints = await _gamification.getVariable(userId, 'totalPoints');
+      final currentDailyPoints = await _gamification.getVariable(userId, 'dailyPoints');
+
+      if (!_pointsAwarded && _distractionCount == 0) {
+        await _gamification.saveVariable(userId, 'totalPoints', currentPoints + 10);
+        await _gamification.saveVariable(userId, 'dailyPoints', currentDailyPoints + 10); // Also update daily points
+        _pointsAwarded = true;
+      } else {
+        // Deduct 2 points for each distraction
+        final deductedPoints = currentPoints - (_distractionCount * 2);
+        final deductedDailyPoints = currentDailyPoints - (_distractionCount * 2);
+        await _gamification.saveVariable(
+          userId,
+          'totalPoints',
+          deductedPoints < 0 ? 0 : deductedPoints,
+        );
+        await _gamification.saveVariable(
+          userId,
+          'dailyPoints',
+          deductedDailyPoints < 0 ? 0 : deductedDailyPoints, // Daily points can't go below 0
+        );
+      }
+    }
+
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -129,7 +159,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       value: progress,
                       strokeWidth: 8,
                       backgroundColor: Colors.grey.shade300,
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.green,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -148,6 +180,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
             // Session Info Card
             Card(
               child: Padding(
@@ -193,9 +226,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: _endSession,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text(
                   'Stop Session',
                   style: TextStyle(fontSize: 18),

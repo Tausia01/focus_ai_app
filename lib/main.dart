@@ -9,6 +9,7 @@ import 'screens/main_screen.dart';
 import 'services/cache_service.dart';
 import 'dart:io';
 import 'widgets/custom_app_bar.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,6 +89,18 @@ void main() async {
     print('Initializing cache service...');
     await CacheService().initialize();
     print('✓ Cache service initialized');
+    print('Initializing notification service...');
+    await NotificationService().initialize();
+    print('✓ Notification service initialized');
+    // If a study time is stored, reschedule the daily reminder on app start
+    final stored = await NotificationService().loadStudyTime();
+    if (stored != null) {
+      // We need remaining tasks to craft the message; use cache snapshot
+      final tasks = CacheService().getTasksFromCache();
+      final remaining = tasks.where((t) => !t.completed).length;
+      await NotificationService().scheduleDailyStudyReminder(stored, remainingTasks: remaining);
+      print('✓ Daily study reminder scheduled from stored time');
+    }
     
     runApp(const MyApp());
   } catch (e, stackTrace) {

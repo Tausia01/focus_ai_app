@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/gamification_service.dart';
 import '../services/cache_service.dart';
+import '../widgets/custom_app_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -175,7 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: CustomAppBar(title: 'Focus AI'),
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: SingleChildScrollView(
@@ -196,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                           'Daily Goal: $_dailyThreshold points',
                           style: const TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 8, width: 150),
                         LinearProgressIndicator(
                           value: _dailyPoints / _dailyThreshold,
                           backgroundColor: Colors.grey.shade300,

@@ -7,6 +7,7 @@ import 'services/task_service.dart';
 import 'services/gamification_service.dart';
 import 'services/cache_service.dart';
 import 'widgets/custom_app_bar.dart';
+import 'services/notification_service.dart';
 
 class TaskScreen extends StatefulWidget {
   const TaskScreen({super.key});
@@ -290,6 +291,42 @@ class _TaskScreenState extends State<TaskScreen> {
         ],
       ),
       body: _buildTaskList(),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () async {
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay.now(),
+                );
+                if (picked != null) {
+                  // Save to Firestore
+                  await NotificationService().saveStudyTime(picked);
+                  // Count remaining tasks from cache
+                  final tasks = CacheService().getTasksFromCache();
+                  final remaining = tasks.where((t) => !t.completed).length;
+                  // Schedule daily notification
+                  await NotificationService().scheduleDailyStudyReminder(picked, remainingTasks: remaining);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Study time saved and reminder scheduled.')),
+                  );
+                }
+              },
+              child: const Text('Set Study Time'),
+            ),
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
         child: const Icon(Icons.add),

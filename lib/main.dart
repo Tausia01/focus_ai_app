@@ -10,11 +10,21 @@ import 'services/cache_service.dart';
 import 'dart:io';
 import 'widgets/custom_app_bar.dart';
 import 'services/notification_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // No heavy work here; ensure Firebase is initialized if needed
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
+    // FCM background handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
     print('=== FIREBASE INITIALIZATION DEBUG ===');
     print('Checking network connectivity...');
     
@@ -92,14 +102,16 @@ void main() async {
     print('Initializing notification service...');
     await NotificationService().initialize();
     print('✓ Notification service initialized');
-    // If a study time is stored, reschedule the daily reminder on app start
-    final stored = await NotificationService().loadStudyTime();
-    if (stored != null) {
-      // We need remaining tasks to craft the message; use cache snapshot
-      final tasks = CacheService().getTasksFromCache();
-      final remaining = tasks.where((t) => !t.completed).length;
-      await NotificationService().scheduleDailyStudyReminder(stored, remainingTasks: remaining);
-      print('✓ Daily study reminder scheduled from stored time');
+
+    // Initialize Firebase Messaging, ask permission (Android 13+ for notifications)
+    final messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(alert: true, badge: true, sound: true);
+    if (!kIsWeb) {
+      await messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
     }
     
     runApp(const MyApp());

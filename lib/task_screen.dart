@@ -309,8 +309,8 @@ class _TaskScreenState extends State<TaskScreen> {
                   initialTime: TimeOfDay.now(),
                 );
                 if (picked != null) {
-                  // Save to Firestore
-                  await NotificationService().saveStudyTime(picked);
+                  // Save locally
+                  await NotificationService().saveStudyTimeLocal(picked);
                   // Count remaining tasks from cache
                   final tasks = CacheService().getTasksFromCache();
                   final remaining = tasks.where((t) => !t.completed).length;

@@ -5,6 +5,7 @@ import '../services/app_detection_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../services/notification_service.dart';
 import '../services/gamification_service.dart';
+import '../services/focus_session_service.dart';
 
 class FocusTimerScreen extends StatefulWidget {
   final FocusSession session;
@@ -18,9 +19,13 @@ class FocusTimerScreen extends StatefulWidget {
 class _FocusTimerScreenState extends State<FocusTimerScreen> {
   final AppDetectionService _appDetectionService = AppDetectionService();
   final GamificationService _gamification = GamificationService();
+  final FocusSessionService _focusSessionService = FocusSessionService();
   Timer? _timer;
   int _distractionCount = 0;
   bool _pointsAwarded = false;
+  bool _sessionCompleted = false;
+  bool _sessionSaved = false;
+  bool _isEnding = false;
 
   // Map for user-friendly app names
   final Map<String, String> _appDisplayNames = {
@@ -33,12 +38,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     'com.reddit.frontpage': 'Reddit',
   };
 
+  StreamSubscription<String>? _appDetectionSub;
+  StreamSubscription<void>? _overlayClosedSub;
+
   @override
   void initState() {
     super.initState();
     _startSession();
     // Listen for overlay close event
-    _appDetectionService.overlayClosedStream.listen((_) {
+    _overlayClosedSub = _appDetectionService.overlayClosedStream.listen((_) {
       _endSession();
     });
   }
@@ -57,7 +65,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     _appDetectionService.setBlockedApps(widget.session.blockedApps);
     await _appDetectionService.startMonitoring();
     // Listen for app detection
-    _appDetectionService.appDetectionStream.listen((appPackage) {
+    _appDetectionSub = _appDetectionService.appDetectionStream.listen((appPackage) {
       _onBlockedAppDetected(appPackage);
     });
     // Start timer
@@ -76,8 +84,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (widget.session.isExpired) {
+        if (!_sessionCompleted) {
+          _sessionCompleted = true;
+          NotificationService().showSessionCompleteNotification(context);
+        }
         _endSession();
-        NotificationService().showSessionCompleteNotification(context);
       } else {
         setState(() {
           // Update UI
@@ -86,9 +97,25 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     });
   }
 
+  Future<void> _saveCompletedSessionIfNeeded() async {
+    if (!_sessionCompleted || _sessionSaved) return;
+    try {
+      await _focusSessionService.saveCompletedSession(
+        session: widget.session,
+        distractionCount: _distractionCount,
+      );
+      _sessionSaved = true;
+    } catch (e) {
+      debugPrint('Error saving focus session: $e');
+    }
+  }
+
   void _endSession() async {
+    if (_isEnding) return;
+    _isEnding = true;
     await _appDetectionService.stopMonitoring();
     _timer?.cancel();
+    await _saveCompletedSessionIfNeeded();
 
     final userId = _gamification.currentUserId;
     if (userId != null) {
@@ -122,6 +149,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _appDetectionSub?.cancel();
+    _overlayClosedSub?.cancel();
     _appDetectionService.dispose();
     super.dispose();
   }

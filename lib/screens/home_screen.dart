@@ -6,6 +6,8 @@ import '../services/task_service.dart';
 import '../services/cache_service.dart';
 import '../models/task.dart';
 import '../widgets/custom_app_bar.dart';
+import '../services/focus_session_service.dart';
+import '../models/focus_session_summary.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -98,6 +100,78 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildFocusSessionAnalysis() {
+    final focusSessionService = FocusSessionService();
+    return StreamBuilder<FocusSessionSummary>(
+      stream: focusSessionService.focusSessionSummaryStream(),
+      initialData: const FocusSessionSummary.empty(),
+      builder: (context, snapshot) {
+        final summary = snapshot.data ?? const FocusSessionSummary.empty();
+        final averageDistractions = summary.averageDistractionsPerSession;
+
+        return Card(
+          margin: const EdgeInsets.only(top: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Focus Session Analysis',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                if (summary.totalSessions == 0)
+                  const Text(
+                    'No completed focus sessions yet. Start a Zen Mode session to begin tracking your focus.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  )
+                else ...[
+                  _buildMetricRow(
+                    label: 'Sessions completed',
+                    value: summary.totalSessions.toString(),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMetricRow(
+                    label: 'Total distractions',
+                    value: summary.totalDistractions.toString(),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMetricRow(
+                    label: 'Avg distractions / session',
+                    value: averageDistractions.toStringAsFixed(1),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMetricRow({required String label, required String value}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.deepPurple,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final taskService = TaskService();
@@ -123,39 +197,42 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 32),
-              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.deepPurple[50],
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.deepPurple.withOpacity(0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Text(
-                message,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Georgia',
-                  color: Colors.deepPurple,
-                  letterSpacing: 1.1,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 32),
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple[50],
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepPurple.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Georgia',
+                    color: Colors.deepPurple,
+                    letterSpacing: 1.1,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-            _buildProductivityReport(),
-          ],
+              _buildProductivityReport(),
+              _buildFocusSessionAnalysis(),
+            ],
+          ),
         ),
       ),
     );

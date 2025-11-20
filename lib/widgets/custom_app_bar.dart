@@ -17,7 +17,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.green,
+      backgroundColor: const Color.fromARGB(255, 230, 235, 246),
       foregroundColor: Colors.white,
       elevation: 0,
       leading: showBackButton
@@ -39,7 +39,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         style: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: Color.fromARGB(66, 0, 0, 0),
         ),
       ),
       centerTitle: true,

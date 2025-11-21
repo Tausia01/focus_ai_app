@@ -125,13 +125,28 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 if (summary.totalSessions == 0)
                   const Text(
-                    'No completed focus sessions yet. Start a Zen Mode session to begin tracking your focus.',
+                    'No focus sessions tracked yet. Start a Zen Mode session to begin logging your progress.',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   )
                 else ...[
                   _buildMetricRow(
-                    label: 'Sessions completed',
+                    label: 'Total sessions',
                     value: summary.totalSessions.toString(),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMetricRow(
+                    label: 'Sessions completed',
+                    value: summary.completedSessions.toString(),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMetricRow(
+                    label: 'Sessions failed',
+                    value: summary.failedSessions.toString(),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMetricRow(
+                    label: 'Completion rate',
+                    value: '${(summary.completionRate * 100).toStringAsFixed(0)}%',
                   ),
                   const SizedBox(height: 8),
                   _buildMetricRow(

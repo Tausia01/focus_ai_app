@@ -7,9 +7,10 @@ class FocusSessionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<void> saveCompletedSession({
+  Future<void> saveSessionResult({
     required FocusSession session,
     required int distractionCount,
+    required bool wasSuccessful,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -28,6 +29,8 @@ class FocusSessionService {
       'distractionCount': distractionCount,
       'startedAt': Timestamp.fromDate(startedAt),
       'completedAt': Timestamp.fromDate(completedAt),
+      'status': wasSuccessful ? 'completed' : 'failed',
+      'successful': wasSuccessful,
     });
   }
 
@@ -44,6 +47,9 @@ class FocusSessionService {
         .snapshots()
         .map((snapshot) {
       var totalDistractions = 0;
+      var completedSessions = 0;
+      var failedSessions = 0;
+
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final rawDistractions = data['distractionCount'];
@@ -52,10 +58,30 @@ class FocusSessionService {
         } else if (rawDistractions is num) {
           totalDistractions += rawDistractions.toInt();
         }
+
+        final status = (data['status'] as String?)?.toLowerCase();
+        final successfulFlag = data['successful'];
+        bool wasSuccessful = true;
+
+        if (status == 'failed') {
+          wasSuccessful = false;
+        } else if (status == 'completed') {
+          wasSuccessful = true;
+        } else if (successfulFlag is bool) {
+          wasSuccessful = successfulFlag;
+        }
+
+        if (wasSuccessful) {
+          completedSessions++;
+        } else {
+          failedSessions++;
+        }
       }
 
       return FocusSessionSummary(
         totalSessions: snapshot.docs.length,
+        completedSessions: completedSessions,
+        failedSessions: failedSessions,
         totalDistractions: totalDistractions,
       );
     });

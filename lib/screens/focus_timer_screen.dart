@@ -97,12 +97,13 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     });
   }
 
-  Future<void> _saveCompletedSessionIfNeeded() async {
-    if (!_sessionCompleted || _sessionSaved) return;
+  Future<void> _logSessionIfNeeded() async {
+    if (_sessionSaved) return;
     try {
-      await _focusSessionService.saveCompletedSession(
+      await _focusSessionService.saveSessionResult(
         session: widget.session,
         distractionCount: _distractionCount,
+        wasSuccessful: _sessionCompleted,
       );
       _sessionSaved = true;
     } catch (e) {
@@ -115,7 +116,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     _isEnding = true;
     await _appDetectionService.stopMonitoring();
     _timer?.cancel();
-    await _saveCompletedSessionIfNeeded();
+    await _logSessionIfNeeded();
 
     final userId = _gamification.currentUserId;
     if (userId != null) {

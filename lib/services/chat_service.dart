@@ -23,7 +23,7 @@ Here is a summary of the user's current tasks:
 $taskSummary
 
 Be supportive, encouraging, and concise. Give concrete, actionable suggestions that fit into short focus sessions. Keep responses focused on helping the user take the next small step.
-Do not repeat the full task list unless asked; reference only the most important task.
+Do not repeat the full task list unless asked; reference only the task with the closest deadline.
 ''';
 
       final uri = Uri.parse('https://api.groq.com/openai/v1/chat/completions');

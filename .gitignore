@@ -45,4 +45,4 @@ app.*.map.json
 /android/app/release
 
 # Groq API Key
-.lib/config/groq.dart
+lib/config/groq.dart

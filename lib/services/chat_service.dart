@@ -2,36 +2,105 @@ import '../models/task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/chat_message.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../config/groq.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Simulate an API call to a chatbot
+  // Call Groq LLM chat completions API to get a response
   Future<String> getResponse(String message, List<Task> tasks) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Build task summary for system prompt
+      final taskSummary = _buildTaskSummary(tasks);
 
-    // Simple logic to generate a motivational response
+      final systemPrompt = '''
+You are a warm relational agent that helps the user focus on their most meaningful work.
+
+Here is a summary of the user's current tasks:
+$taskSummary
+
+Be supportive, encouraging, and concise. Give concrete, actionable suggestions that fit into short focus sessions. Keep responses focused on helping the user take the next small step.
+Do not repeat the full task list unless asked; reference only the most important task.
+''';
+
+      final uri = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
+
+      final body = jsonEncode({
+        'model': 'llama-3.1-8b-instant',
+        'messages': [
+          {
+            'role': 'system',
+            'content': systemPrompt,
+          },
+          {
+            'role': 'user',
+            'content': message,
+          },
+        ],
+      });
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${GroqConfig.apiKey}',
+        },
+        body: body,
+      );
+
+      if (response.statusCode != 200) {
+        return 'I had trouble reaching the focus assistant right now. Let\'s take a breath and pick one small task you can work on next.';
+      }
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+      final choices = data['choices'];
+      if (choices is List && choices.isNotEmpty) {
+        final first = choices[0];
+        final messageMap = first['message'];
+        final content = messageMap?['content'];
+        if (content != null && content is String && content.isNotEmpty) {
+          return content;
+        }
+      }
+
+      return 'I\'m here with you, but something went wrong reading the assistant\'s reply. Let\'s choose one priority task and commit to a short focus session.';
+    } catch (e) {
+      return 'I couldn\'t connect to the focus assistant just now. Let\'s still choose one small step you can take on an important task.';
+    }
+  }
+
+  String _buildTaskSummary(List<Task> tasks) {
     if (tasks.isEmpty) {
-      return "You don't have any tasks yet. Let's add some to get you started!";
+      return 'The user has no tasks yet. Gently encourage them to create 1–3 specific tasks they care about.';
     }
 
-    if (message.toLowerCase().contains('hello') || message.toLowerCase().contains('hi')) {
-        return 'Hello! You have ${tasks.length} tasks to do. You can do it!';
+    final buffer = StringBuffer();
+    buffer.writeln('Total tasks: ${tasks.length}.');
+
+    // Sort by priority (high -> low), then nearest deadline
+    final sorted = [...tasks]
+      ..sort((a, b) {
+        // Higher priority should come first
+        final priorityCompare = b.priority.index.compareTo(a.priority.index);
+        if (priorityCompare != 0) return priorityCompare;
+        return a.deadline.compareTo(b.deadline);
+      });
+
+    // Take up to top 5 tasks for context
+    final topTasks = sorted.take(5);
+    for (final t in topTasks) {
+      buffer.writeln(
+          '- Task: ${t.name} | Priority: ${t.priority.displayName} | Deadline: ${t.deadline.toIso8601String()}');
     }
 
-    final highPriorityTasks = tasks.where((t) => t.priority == TaskPriority.high).toList();
-    if (highPriorityTasks.isNotEmpty) {
-      return 'You have ${highPriorityTasks.length} high priority tasks. Let\'s focus on "${highPriorityTasks.first.name}" first. You can do it!';
-    }
+    buffer.writeln(
+        'Use this task list only as lightweight context. Do not repeat all details back verbatim; instead, reference the most important task and guide the user toward one clear next action.');
 
-    final approachingDeadlines = tasks.where((t) => t.deadline.isBefore(DateTime.now().add(const Duration(days: 3)))).toList();
-    if (approachingDeadlines.isNotEmpty) {
-      return 'Remember, the deadline for "${approachingDeadlines.first.name}" is approaching. A little progress each day adds up to big results!';
-    }
-
-    return 'You are doing great! Keep up the good work on your tasks. What will you tackle next?';
+    return buffer.toString();
   }
 
   Stream<List<ChatMessage>> getChatMessages() {
@@ -72,4 +141,4 @@ class ChatService {
     }
     await batch.commit();
   }
-} 
+}

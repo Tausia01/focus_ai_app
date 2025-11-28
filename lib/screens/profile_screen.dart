@@ -29,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadDataFromCache();
-    _loadData(); // Load fresh data in background
+    _loadData(); 
   }
 
   @override
@@ -45,7 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     }
   }
 
-  // Load data from cache instantly (no await)
   void _loadDataFromCache() {
     final gamificationData = _cacheService.getGamificationFromCache();
     
@@ -53,17 +52,18 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     _dailyPoints = gamificationData['dailyPoints'] is int ? gamificationData['dailyPoints'] as int : 0;
     _streakCount = gamificationData['streakCount'] is int ? gamificationData['streakCount'] as int : 0;
     _streakFreezeCount = gamificationData['streakFreezeCount'] is int ? gamificationData['streakFreezeCount'] as int : 0;
-    
+
     if (mounted) setState(() {});
   }
 
-  // Load fresh data from Firestore in background
   Future<void> _loadData() async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
     final today = DateTime.now();
-    final lastActiveDate = await _gamification.getDateTime(userId, 'lastActiveDate') ?? today.subtract(const Duration(days: 1));
+    final lastActiveDate =
+        await _gamification.getDateTime(userId, 'lastActiveDate') ??
+            today.subtract(const Duration(days: 1));
 
     _totalPoints = await _gamification.getVariable(userId, 'totalPoints');
     _dailyPoints = await _gamification.getVariable(userId, 'dailyPoints');
@@ -85,23 +85,18 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
-    final previousDailyPoints = await _gamification.getVariable(userId, 'dailyPoints');
+    final previousDailyPoints =
+        await _gamification.getVariable(userId, 'dailyPoints');
 
     if (previousDailyPoints >= _dailyThreshold) {
-      setState(() {
-        _streakCount++;
-      });
+      setState(() => _streakCount++);
       await _gamification.saveVariable(userId, 'streakCount', _streakCount);
     } else {
       if (_streakFreezeCount > 0) {
-        setState(() {
-          _streakFreezeCount--;
-        });
+        setState(() => _streakFreezeCount--);
         await _gamification.saveVariable(userId, 'streakFreezeCount', _streakFreezeCount);
       } else {
-        setState(() {
-          _streakCount = 0;
-        });
+        setState(() => _streakCount = 0);
         await _gamification.saveVariable(userId, 'streakCount', _streakCount);
       }
     }
@@ -111,58 +106,43 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
-    final currentDailyPoints = await _gamification.getVariable(userId, 'dailyPoints');
+    final currentDailyPoints =
+        await _gamification.getVariable(userId, 'dailyPoints');
 
     String message;
     if (currentDailyPoints >= _dailyThreshold) {
-      message = 'Great! You\'ve met today\'s goal of $_dailyThreshold points. Your streak will increase tomorrow!';
+      message =
+          'Great! You\'ve met today\'s goal of $_dailyThreshold points. Your streak will increase tomorrow!';
     } else {
       final remainingPoints = _dailyThreshold - currentDailyPoints;
       if (_streakFreezeCount > 0) {
-        message = 'You need $remainingPoints more points today to maintain your streak, or use a streak freeze.';
+        message =
+            'You need $remainingPoints more points today to maintain your streak, or use a streak freeze.';
       } else {
-        message = 'You need $remainingPoints more points today to maintain your streak!';
+        message =
+            'You need $remainingPoints more points today to maintain your streak!';
       }
     }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 3),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
     );
   }
 
-  static Future<void> checkDailyPointsThreshold() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-    final gamification = GamificationService();
-    final dailyPoints = await gamification.getVariable(userId, 'dailyPoints');
-    final dailyThreshold = 15;
-    if (dailyPoints >= dailyThreshold) {
-      // Hook for future notifications
-    }
-  }
-
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-        date1.month == date2.month &&
-        date1.day == date2.day;
-  }
+  bool _isSameDay(DateTime d1, DateTime d2) =>
+      d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
 
   Future<void> _buyStreakFreeze() async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
     if (_totalPoints >= _streakFreezeCost) {
-      // Optimistic UI update - happens instantly
       setState(() {
         _totalPoints -= _streakFreezeCost;
         _streakFreezeCount++;
       });
-      
-      // Save to cache/Firestore in background
+
       await _gamification.saveVariable(userId, 'totalPoints', _totalPoints);
       await _gamification.saveVariable(userId, 'streakFreezeCount', _streakFreezeCount);
     } else {
@@ -181,61 +161,205 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         onRefresh: _loadData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Container(
-            height: MediaQuery.of(context).size.height - AppBar().preferredSize.height - MediaQuery.of(context).padding.top,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+
+              _buildStatCard(
+                label: "Total Points",
+                value: _totalPoints.toString(),
+                icon: Icons.star_rounded,
+                color: Colors.blueGrey.shade50,
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildDailyProgressCard(),
+
+              const SizedBox(height: 16),
+
+              Row(
                 children: [
-                  Text('Total Points: $_totalPoints', style: const TextStyle(fontSize: 20)),
-                  Text('Daily Points: $_dailyPoints', style: const TextStyle(fontSize: 20)),
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 10),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Daily Goal: $_dailyThreshold points',
-                          style: const TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8, width: 150),
-                        LinearProgressIndicator(
-                          value: _dailyPoints / _dailyThreshold,
-                          backgroundColor: Colors.grey.shade300,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _dailyPoints >= _dailyThreshold ? Colors.green : Colors.blue,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${_dailyPoints >= _dailyThreshold ? "Goal Met! 🎉" : "${_dailyThreshold - _dailyPoints} more points needed"}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: _dailyPoints >= _dailyThreshold ? Colors.green : Colors.orange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  Expanded(
+                    child: _buildStatCard(
+                      label: "Streak Count",
+                      value: _streakCount.toString(),
+                      icon: Icons.local_fire_department_rounded,
+                      color: Colors.orange.shade50,
                     ),
                   ),
-                  Text('Streak Count: $_streakCount', style: const TextStyle(fontSize: 20)),
-                  Text('Streak Freezes: $_streakFreezeCount', style: const TextStyle(fontSize: 20)),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _buyStreakFreeze,
-                    child: Text('Buy Streak Freeze (Cost: $_streakFreezeCost points)'),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _checkCurrentStreakStatus,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      label: "Streak Freezes",
+                      value: _streakFreezeCount.toString(),
+                      icon: Icons.ac_unit_rounded,
+                      color: Colors.blue.shade50,
                     ),
-                    child: const Text('Check Streak Status'),
                   ),
                 ],
               ),
+
+              const SizedBox(height: 30),
+
+              _buildPrimaryButton(
+                text: "Buy Streak Freeze (Cost: $_streakFreezeCost)",
+                onPressed: _buyStreakFreeze,
+                color: Colors.blueGrey.shade700,
+              ),
+
+              const SizedBox(height: 12),
+
+              _buildPrimaryButton(
+                text: "Check Streak Status",
+                onPressed: _checkCurrentStreakStatus,
+                color: Colors.indigo,
+              ),
+
+              const SizedBox(height: 50),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --------------------------
+  // UI COMPONENTS BELOW
+  // --------------------------
+
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    Color? color,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color ?? Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      child: Row(
+        children: [
+          Icon(icon, size: 32, color: Colors.black87),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  )),
+              const SizedBox(height: 4),
+              Text(value,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  )),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyProgressCard() {
+    final progress = (_dailyPoints / _dailyThreshold).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Daily Progress",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "$_dailyPoints / $_dailyThreshold points",
+            style: const TextStyle(color: Colors.black54),
+          ),
+          const SizedBox(height: 14),
+
+          Center(
+            child: SizedBox(
+              width: 230,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 12,
+                  backgroundColor: Colors.grey.shade300,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress >= 1 ? Colors.green : Colors.blueGrey,
+                  ),
+                ),
+              ),
             ),
           ),
+
+          const SizedBox(height: 12),
+
+          Center(
+            child: Text(
+              progress >= 1
+                  ? "Goal Met! 🎉"
+                  : "${_dailyThreshold - _dailyPoints} more to go",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color:
+                    progress >= 1 ? Colors.green : Colors.orange,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryButton({
+    required String text,
+    required VoidCallback onPressed,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 15, color: Colors.white),
+          textAlign: TextAlign.center,
         ),
       ),
     );

@@ -8,7 +8,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const CustomAppBar({
     super.key,
-    this.title = 'Focus AI',
+    this.title = 'FocusAI',
     this.actions,
     this.showBackButton = false,
     this.onBackPressed,

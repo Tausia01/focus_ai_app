@@ -28,162 +28,140 @@ class HomeScreen extends StatelessWidget {
     return _motivatingMessages[random.nextInt(_motivatingMessages.length)];
   }
 
-  // Get productivity report data from cache instantly
-  Map<String, int> _getProductivityReportFromCache() {
-    final tasks = CacheService().getTasksFromCache();
-    final completedCount = tasks.where((t) => t.completed).length;
-    final totalCount = tasks.length;
-    
-    return {
-      'completed': completedCount,
-      'total': totalCount,
-    };
-  }
+  // ---------------------------
+  // NEW COMBINED PRODUCTIVITY CARD
+  // ---------------------------
+  Widget _buildCombinedProductivityCard() {
+    final focusSessionService = FocusSessionService();
 
-  // Build productivity report with instant loading from cache
-  Widget _buildProductivityReport() {
-    // Get initial data from cache instantly
-    final initialData = _getProductivityReportFromCache();
-    
     return StreamBuilder<List<Task>>(
-      // Use cached data as initial data for instant rendering
       initialData: CacheService().getTasksFromCache(),
       stream: CacheService().getTasksStream(),
       builder: (context, snapshot) {
-        // Show cached data immediately, even if stream hasn't emitted yet
         final tasks = snapshot.data ?? CacheService().getTasksFromCache();
         final completedCount = tasks.where((t) => t.completed).length;
         final totalCount = tasks.length;
-        
-        return Column(
-          children: [
-            Text(
-              'Productivity Report',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 180,
-              width: 180,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 4,
-                  centerSpaceRadius: 48,
-                  startDegreeOffset: -90,
-                  sections: [
-                    PieChartSectionData(
-                      color: Colors.deepPurple,
-                      value: completedCount.toDouble(),
-                      title: '',
-                      radius: 40,
+
+        return StreamBuilder<FocusSessionSummary>(
+          stream: focusSessionService.focusSessionSummaryStream(),
+          initialData: const FocusSessionSummary.empty(),
+          builder: (context, fsSnapshot) {
+            final summary = fsSnapshot.data ?? const FocusSessionSummary.empty();
+            final avgDistract = summary.averageDistractionsPerSession;
+
+            return Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 3,
+              margin: const EdgeInsets.only(top: 10),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text("Productivity Report",
+                        style: Theme.of(context).textTheme.titleLarge),
+
+                    const SizedBox(height: 16),
+
+                    /// COMPACT PIE CHART
+                    SizedBox(
+                      height: 140,
+                      width: 140,
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 0,
+                          centerSpaceRadius: 38,
+                          startDegreeOffset: -90,
+                          sections: [
+                            PieChartSectionData(
+                              color: Colors.purple.shade300,
+                              value: completedCount.toDouble(),
+                              title: '',
+                              radius: 32,
+                            ),
+                            PieChartSectionData(
+                              color: Colors.purple.shade100,
+                              value: (totalCount - completedCount).toDouble(),
+                              title: '',
+                              radius: 32,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    PieChartSectionData(
-                      color: Colors.deepPurple[100],
-                      value: (totalCount - completedCount).toDouble(),
-                      title: '',
-                      radius: 40,
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      totalCount == 0
+                          ? 'No tasks yet.'
+                          : '$completedCount of $totalCount tasks completed',
+                      style: const TextStyle(fontSize: 15),
                     ),
+
+                    const SizedBox(height: 20),
+
+                    Divider(color: Colors.grey.shade300, thickness: 1),
+                    const SizedBox(height: 12),
+
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Focus Session Summary",
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    if (summary.totalSessions == 0)
+                      const Text(
+                        'No focus sessions logged yet.',
+                        style: TextStyle(fontSize: 15, color: Colors.grey),
+                      )
+                    else
+                      Column(
+                        children: [
+                          _buildMiniRow("Total Sessions", summary.totalSessions.toString()),
+                          _buildMiniRow("Completed", summary.completedSessions.toString()),
+                          _buildMiniRow("Failed", summary.failedSessions.toString()),
+                          _buildMiniRow("Completion Rate",
+                              "${(summary.completionRate * 100).toStringAsFixed(0)}%"),
+                          _buildMiniRow("Total Distractions", summary.totalDistractions.toString()),
+                          _buildMiniRow("Avg Distractions",
+                              avgDistract.toStringAsFixed(1)),
+                        ],
+                      ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              totalCount == 0
-                  ? 'No tasks yet. Start your productivity journey!'
-                  : 'You have completed $completedCount out of $totalCount task${totalCount == 1 ? '' : 's'}!',
-              style: const TextStyle(fontSize: 18),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildFocusSessionAnalysis() {
-    final focusSessionService = FocusSessionService();
-    return StreamBuilder<FocusSessionSummary>(
-      stream: focusSessionService.focusSessionSummaryStream(),
-      initialData: const FocusSessionSummary.empty(),
-      builder: (context, snapshot) {
-        final summary = snapshot.data ?? const FocusSessionSummary.empty();
-        final averageDistractions = summary.averageDistractionsPerSession;
-
-        return Card(
-          margin: const EdgeInsets.only(top: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Focus Session Analysis',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 12),
-                if (summary.totalSessions == 0)
-                  const Text(
-                    'No focus sessions tracked yet. Start a Zen Mode session to begin logging your progress.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  )
-                else ...[
-                  _buildMetricRow(
-                    label: 'Total sessions',
-                    value: summary.totalSessions.toString(),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMetricRow(
-                    label: 'Sessions completed',
-                    value: summary.completedSessions.toString(),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMetricRow(
-                    label: 'Sessions failed',
-                    value: summary.failedSessions.toString(),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMetricRow(
-                    label: 'Completion rate',
-                    value: '${(summary.completionRate * 100).toStringAsFixed(0)}%',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMetricRow(
-                    label: 'Total distractions',
-                    value: summary.totalDistractions.toString(),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMetricRow(
-                    label: 'Avg distractions / session',
-                    value: averageDistractions.toStringAsFixed(1),
-                  ),
-                ],
-              ],
+  // ---------------------------
+  // UI HELPER FOR METRIC ROWS
+  // ---------------------------
+  Widget _buildMiniRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 15, color: Colors.grey)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.deepPurple,
             ),
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMetricRow({required String label, required String value}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16, color: Colors.grey),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.deepPurple,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -191,10 +169,9 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final taskService = TaskService();
     final message = getRandomMessage();
-    
-    // Run migration in background without blocking UI
+
     taskService.migrateTasksAddCompleted();
-    
+
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Focus AI',
@@ -204,8 +181,6 @@ class HomeScreen extends StatelessWidget {
             tooltip: 'Logout',
             onPressed: () async {
               await AuthService().signOut();
-              // Navigation is now handled automatically by AuthWrapper
-              // No need to manually navigate here
             },
           ),
         ],
@@ -214,13 +189,13 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(24.0),
         child: SingleChildScrollView(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.only(bottom: 32),
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                 decoration: BoxDecoration(
                   color: Colors.deepPurple[50],
                   borderRadius: BorderRadius.circular(24),
@@ -244,12 +219,13 @@ class HomeScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              _buildProductivityReport(),
-              _buildFocusSessionAnalysis(),
+
+              // NEW COMPACT PRODUCTIVITY CARD
+              _buildCombinedProductivityCard(),
             ],
           ),
         ),
       ),
     );
   }
-} 
+}

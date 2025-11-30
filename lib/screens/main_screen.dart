@@ -45,8 +45,8 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.gamepad),
+            label: 'Gamify',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.task),
@@ -58,7 +58,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.spa),
-            label: 'Zen Mode',
+            label: 'Focus Mode',
           ),
         ],
       ),

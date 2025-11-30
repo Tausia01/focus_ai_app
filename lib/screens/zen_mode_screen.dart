@@ -13,18 +13,16 @@ class ZenModeScreen extends StatefulWidget {
 }
 
 class _ZenModeScreenState extends State<ZenModeScreen> with WidgetsBindingObserver {
-  // App selection
   final Map<String, bool> _blockedApps = {
-    'com.facebook.katana': false,        // Facebook
-    'com.instagram.android': false,      // Instagram
-    'com.zhiliaoapp.musically': false,   // TikTok
-    'com.twitter.android': false,        // Twitter
-    'com.google.android.youtube': false, // YouTube
-    'com.snapchat.android': false,       // Snapchat
-    'com.reddit.frontpage': false,       // Reddit
+    'com.facebook.katana': false,
+    'com.instagram.android': false,
+    'com.zhiliaoapp.musically': false,
+    'com.twitter.android': false,
+    'com.google.android.youtube': false,
+    'com.snapchat.android': false,
+    'com.reddit.frontpage': false,
   };
 
-  // Timer selection
   Duration _selectedDuration = const Duration(minutes: 30);
   final List<Duration> _durationOptions = [
     const Duration(minutes: 15),
@@ -44,12 +42,10 @@ class _ZenModeScreenState extends State<ZenModeScreen> with WidgetsBindingObserv
     'com.reddit.frontpage': 'Reddit',
   };
 
-  List<String> get _selectedBlockedApps {
-    return _blockedApps.entries
-        .where((entry) => entry.value)
-        .map((entry) => entry.key)
-        .toList();
-  }
+  List<String> get _selectedBlockedApps => _blockedApps.entries
+      .where((entry) => entry.value)
+      .map((entry) => entry.key)
+      .toList();
 
   final AppDetectionService _appDetectionService = AppDetectionService();
   bool _permissionsGranted = false;
@@ -77,13 +73,12 @@ class _ZenModeScreenState extends State<ZenModeScreen> with WidgetsBindingObserv
   Future<void> _recheckPermissionsOnResume() async {
     bool hasUsage = await _appDetectionService.hasUsageStatsPermission();
     bool hasOverlay = await _appDetectionService.hasOverlayPermission();
-    setState(() {
-      _permissionsGranted = hasUsage && hasOverlay;
-    });
+    setState(() => _permissionsGranted = hasUsage && hasOverlay);
   }
 
   Future<void> _checkAndRequestPermissions() async {
     await _appDetectionService.initialize();
+
     bool hasUsage = await _appDetectionService.hasUsageStatsPermission();
     bool hasOverlay = await _appDetectionService.hasOverlayPermission();
 
@@ -91,46 +86,36 @@ class _ZenModeScreenState extends State<ZenModeScreen> with WidgetsBindingObserv
       await _showPermissionDialog(
         title: 'Usage Access Required',
         message: 'To monitor blocked apps, please grant Usage Access permission.',
-        onConfirm: () async {
-          await _appDetectionService.requestUsageStatsPermission();
-        },
+        onConfirm: () async => _appDetectionService.requestUsageStatsPermission(),
       );
     }
+
     if (!hasOverlay) {
       await _showPermissionDialog(
         title: 'Appear on Top Required',
         message: 'To show overlays, please grant Appear on Top permission.',
-        onConfirm: () async {
-          await _appDetectionService.requestOverlayPermission();
-        },
+        onConfirm: () async => _appDetectionService.requestOverlayPermission(),
       );
     }
-    // Re-check after requesting
+
     hasUsage = await _appDetectionService.hasUsageStatsPermission();
     hasOverlay = await _appDetectionService.hasOverlayPermission();
-    setState(() {
-      _permissionsGranted = hasUsage && hasOverlay;
-    });
-    if (!_permissionsGranted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please grant all required permissions to use Zen Mode.')),
-        );
-      }
-    }
+
+    setState(() => _permissionsGranted = hasUsage && hasOverlay);
   }
 
-  Future<void> _showPermissionDialog({required String title, required String message, required VoidCallback onConfirm}) async {
+  Future<void> _showPermissionDialog({
+    required String title,
+    required String message,
+    required VoidCallback onConfirm,
+  }) async {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -143,150 +128,121 @@ class _ZenModeScreenState extends State<ZenModeScreen> with WidgetsBindingObserv
     );
   }
 
-  void _startFocusSession() async {
+  void _startFocusSession() {
     if (!_permissionsGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please grant all required permissions before starting a focus session.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    if (_selectedBlockedApps.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one app to monitor'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Please grant all permissions.'), backgroundColor: Colors.red),
       );
       return;
     }
 
-    // Create focus session
+    if (_selectedBlockedApps.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one app.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     final session = FocusSession.create(
       blockedApps: _selectedBlockedApps,
       duration: _selectedDuration,
     );
 
-    // Navigate to timer screen
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => FocusTimerScreen(session: session),
-      ),
+      MaterialPageRoute(builder: (context) => FocusTimerScreen(session: session)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Focus AI',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await AuthService().signOut();
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // App Selection
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Select Apps to Monitor',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+      appBar: CustomAppBar(title: 'Focus AI'),
+      body: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            // 🔹 Apps section (condensed)
+            Expanded(
+              child: Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Select Apps', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: GridView.count(
+                          crossAxisCount: 2,
+                          childAspectRatio: 3.4,
+                          children: _blockedApps.keys.map((app) {
+                            return SwitchListTile(
+                              title: Text(_appDisplayNames[app] ?? app, style: const TextStyle(fontSize: 13)),
+                              value: _blockedApps[app]!,
+                              onChanged: (v) => setState(() => _blockedApps[app] = v),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'You\'ll get notified when you open these apps during your focus session.',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._blockedApps.keys.map((app) => SwitchListTile(
-                    title: Text(_appDisplayNames[app] ?? app),
-                    value: _blockedApps[app]!,
-                    onChanged: (val) {
-                      setState(() {
-                        _blockedApps[app] = val;
-                      });
-                    },
-                    secondary: const Icon(Icons.block),
-                  )),
-                ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
 
-          // Timer Selection
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Focus Duration',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: _durationOptions.map((duration) {
-                      final isSelected = duration == _selectedDuration;
-                      return ChoiceChip(
-                        label: Text('${duration.inMinutes} min'),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              _selectedDuration = duration;
-                            });
-                          }
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 8),
 
-          // Start Session Button
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _startFocusSession,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
-              child: const Text(
-                'Start Focus Session',
-                style: TextStyle(fontSize: 18),
+            // 🔹 Duration section (compact)
+            Card(
+              elevation: 1,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Focus Duration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _durationOptions.map((duration) {
+                        return ChoiceChip(
+                          label: Text('${duration.inMinutes} min'),
+                          selected: duration == _selectedDuration,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _selectedDuration = duration);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 14),
+
+            // 🔹 Start Button — neutral color
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _startFocusSession,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFBFC5D2), // Neutral grey-blue
+                  foregroundColor: Colors.black87,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Start Focus Session', style: TextStyle(fontSize: 16)),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
-} 
+}

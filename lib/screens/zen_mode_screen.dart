@@ -173,11 +173,11 @@ class _ZenModeScreenState extends State<ZenModeScreen> with WidgetsBindingObserv
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Select Apps', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 2),
                       Expanded(
                         child: GridView.count(
-                          crossAxisCount: 2,
-                          childAspectRatio: 3.4,
+                          crossAxisCount: 1,
+                          childAspectRatio: 6.9,
                           children: _blockedApps.keys.map((app) {
                             return SwitchListTile(
                               title: Text(_appDisplayNames[app] ?? app, style: const TextStyle(fontSize: 13)),
@@ -193,7 +193,7 @@ class _ZenModeScreenState extends State<ZenModeScreen> with WidgetsBindingObserv
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 2),
 
             // 🔹 Duration section (compact)
             Card(
